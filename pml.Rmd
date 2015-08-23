@@ -1,0 +1,128 @@
+---
+title: "Practical Machine Learning"
+author: "Gonzalo Chiappara"
+date: "August 23, 2015"
+output: html_document
+---
+
+```{r, include=FALSE}
+training_orig <- read.csv("pml-training.csv")
+testing_orig <- read.csv("pml-testing.csv")
+
+training <- training_orig[,c("X","user_name","raw_timestamp_part_1","raw_timestamp_part_2","cvtd_timestamp","new_window","num_window","roll_belt","pitch_belt","yaw_belt","total_accel_belt","gyros_belt_x","gyros_belt_y","gyros_belt_z","accel_belt_x","accel_belt_y","accel_belt_z","magnet_belt_x","magnet_belt_y","magnet_belt_z","roll_arm","pitch_arm","yaw_arm","total_accel_arm","gyros_arm_x","gyros_arm_y","gyros_arm_z","accel_arm_x","accel_arm_y","accel_arm_z","magnet_arm_x","magnet_arm_y","magnet_arm_z","roll_dumbbell","pitch_dumbbell","yaw_dumbbell","total_accel_dumbbell","gyros_dumbbell_x","gyros_dumbbell_y","gyros_dumbbell_z","accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z","magnet_dumbbell_x","magnet_dumbbell_y","magnet_dumbbell_z","roll_forearm","pitch_forearm","yaw_forearm","total_accel_forearm","gyros_forearm_x","gyros_forearm_y","gyros_forearm_z","accel_forearm_x","accel_forearm_y","accel_forearm_z","magnet_forearm_x","magnet_forearm_y","magnet_forearm_z","classe")]
+testing <- testing_orig[,c("X","user_name","raw_timestamp_part_1","raw_timestamp_part_2","cvtd_timestamp","new_window","num_window","roll_belt","pitch_belt","yaw_belt","total_accel_belt","gyros_belt_x","gyros_belt_y","gyros_belt_z","accel_belt_x","accel_belt_y","accel_belt_z","magnet_belt_x","magnet_belt_y","magnet_belt_z","roll_arm","pitch_arm","yaw_arm","total_accel_arm","gyros_arm_x","gyros_arm_y","gyros_arm_z","accel_arm_x","accel_arm_y","accel_arm_z","magnet_arm_x","magnet_arm_y","magnet_arm_z","roll_dumbbell","pitch_dumbbell","yaw_dumbbell","total_accel_dumbbell","gyros_dumbbell_x","gyros_dumbbell_y","gyros_dumbbell_z","accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z","magnet_dumbbell_x","magnet_dumbbell_y","magnet_dumbbell_z","roll_forearm","pitch_forearm","yaw_forearm","total_accel_forearm","gyros_forearm_x","gyros_forearm_y","gyros_forearm_z","accel_forearm_x","accel_forearm_y","accel_forearm_z","magnet_forearm_x","magnet_forearm_y","magnet_forearm_z","problem_id")]
+
+library(caret)
+
+set.seed(1)
+inTrain <- createDataPartition(training$classe, p = .75, list = FALSE)
+
+train <- training[inTrain,]
+test <- training[-inTrain,]
+
+formula <- classe ~ roll_belt + pitch_belt + yaw_belt + total_accel_belt + gyros_belt_x + gyros_belt_y + gyros_belt_z + accel_belt_x + accel_belt_y + accel_belt_z + magnet_belt_x + magnet_belt_y + magnet_belt_z + roll_arm + pitch_arm + yaw_arm + total_accel_arm + gyros_arm_x + gyros_arm_y + gyros_arm_z + accel_arm_x + accel_arm_y + accel_arm_z + magnet_arm_x + magnet_arm_y + magnet_arm_z + roll_dumbbell + pitch_dumbbell + yaw_dumbbell + total_accel_dumbbell + gyros_dumbbell_x + gyros_dumbbell_y + gyros_dumbbell_z + accel_dumbbell_x + accel_dumbbell_y + accel_dumbbell_z + magnet_dumbbell_x + magnet_dumbbell_y + magnet_dumbbell_z + roll_forearm + pitch_forearm + yaw_forearm + total_accel_forearm + gyros_forearm_x + gyros_forearm_y + gyros_forearm_z + accel_forearm_x + accel_forearm_y + accel_forearm_z + magnet_forearm_x + magnet_forearm_y + magnet_forearm_z
+
+```
+
+
+I splitted the training data into two data sets. The first 75% of the samples were used to train the models and the remaining were used to estimate the out of sample error.
+
+The features with NA values in the test data (20 observations) were discarded because they don't have any predictive power. The models were trained with the following 52 variables:
+
+* roll_belt
+* pitch_belt
+* yaw_belt
+* total_accel_belt
+* gyros_belt_x
+* gyros_belt_y
+* gyros_belt_z
+* accel_belt_x
+* accel_belt_y
+* accel_belt_z
+* magnet_belt_x
+* magnet_belt_y
+* magnet_belt_z
+* roll_arm
+* pitch_arm
+* yaw_arm
+* total_accel_arm
+* gyros_arm_x
+* gyros_arm_y
+* gyros_arm_z
+* accel_arm_x
+* accel_arm_y
+* accel_arm_z
+* magnet_arm_x
+* magnet_arm_y
+* magnet_arm_z
+* roll_dumbbell
+* pitch_dumbbell
+* yaw_dumbbell
+* total_accel_dumbbell
+* gyros_dumbbell_x
+* gyros_dumbbell_y
+* gyros_dumbbell_z
+* accel_dumbbell_x
+* accel_dumbbell_y
+* accel_dumbbell_z
+* magnet_dumbbell_x
+* magnet_dumbbell_y
+* magnet_dumbbell_z
+* roll_forearm
+* pitch_forearm
+* yaw_forearm
+* total_accel_forearm
+* gyros_forearm_x
+* gyros_forearm_y
+* gyros_forearm_z
+* accel_forearm_x
+* accel_forearm_y
+* accel_forearm_z
+* magnet_forearm_x
+* magnet_forearm_y
+* magnet_forearm_z
+
+The followings are the models used to make the predictions.
+
+In each model 5-fold cv was used to estimate the error and select the best parameter conbination.
+
+## Simple Tree
+
+```{r, echo=FALSE, message=FALSE, cache=TRUE}
+set.seed(1)
+rpartFit <- train(formula, data = train, method = "rpart", trControl = trainControl(method = "cv", number = 5), tuneGrid = expand.grid(cp = seq(0, 0.05, 0.005)))
+print(rpartFit)
+```
+
+## Bagging
+
+In this model I use 25 bootstrap replications (default).
+
+```{r, echo=FALSE, message=FALSE,cache=TRUE}
+set.seed(1)
+treebagFit <- train(formula, data = train, method = "treebag", trControl = trainControl(method = "cv", number = 5))
+print(treebagFit)
+```
+
+## Random Forest
+
+I used cv to select mtry between 4, 8, 12 and 16.
+
+```{r, echo=FALSE, message=FALSE, cache=TRUE}
+set.seed(1)
+rfFit <- train(formula, data = train, method = "rf", trControl = trainControl(method = "cv", number = 5), tuneGrid = expand.grid(mtry = seq(4,16,4)))
+print(rfFit)
+```
+
+## Model comparison
+
+```{r, echo=FALSE, message=FALSE,cache=TRUE}
+resamps <- resamples(list(rpart = rpartFit, treebag = treebagFit, rf = rfFit))
+summary(resamps)
+```
+
+```{r,echo=FALSE, message=FALSE,cache=TRUE}
+bwplot(resamps, layout = c(3, 1))
+```
+
+The model selected is random forest.
